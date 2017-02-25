@@ -1,169 +1,134 @@
-#! /usr/bin/env python
+#!/usr/bin/env python
+
+import sys
 import json
-import urllib
-import urllib2
+import requests
 import datetime
-import matplotlib
+class SolarAPI:
+    "Fronius Solar API wrapper"
 
-class solarapi:
-    def __init__(self,host,verbose=False):
+    def __init__(self, host):
         self.host = host
-        self.verbose = verbose
-        return
+        self.protocol = 'http://'
 
-    def PrintFormatted(self,paramdict):
-        if not self.verbose:
-            return
-        print ">"*80
-        for item in paramdict:
-
-            v = False
-            u = False
-            #print paramdict[item]
-            if type(paramdict[item]) is dict:
-                if "Unit" in paramdict[item].keys():
-                    u = paramdict[item]["Unit"]
-                if "Value" in paramdict[item].keys():
-                    v = paramdict[item]["Value"]
-                elif "Values" in paramdict[item].keys():
-                    v = paramdict[item]["Values"]
-
-            if u and v:
-                print "%s\t= %s %s"%(item,v,u)
-            else:
-                print "%s\t= %s"%(item, paramdict[item])
-        print "<"*80
-
-    def DoRequest(self,url,params):
-        full_url = "http://"+self.host+url+"?"+urllib.urlencode(params)
-        data = json.loads(urllib2.urlopen(full_url).read())
-
-        if self.verbose:
-            print "---- "+full_url+" ----"
-
+    def request(self, url, params={}):
+        request_url = self.protocol + self.host + url
+        try:
+            data = requests.get(request_url, params)
+            data = data.json()
+        except ValueError, e:
+            print "Error in JSON response:", e
+            print data
+            return False
         errorcode = data["Head"]["Status"]["Code"]
         errortext = data["Head"]["Status"]["Reason"]
-
-
-        if not "Body" in data.keys() or errorcode >0:
-            if self.verbose:
-                print "%i - %s"%(errorcode,errortext)
+        if not "Body" in data or errorcode > 0:
+            print "%i - %s"%(errorcode,errortext)
             return False
-
-        body = data["Body"]
-
-
         return data["Body"]
 
-    def GetInverterRealtimeData(self,Scope="System",DeviceID=0,DataCollection="CumulationInverterData"):
-        """
-        Scope = System / Device
+    def api_info(self):
+        request_url = self.protocol + self.host + '/solar_api/GetAPIVersion.cgi'
+        return requests.get(request_url).json()
 
-        if Scope = Device:
-            DeviceID = 0..99
-            DataCollection = CumulationInverterData / CommonInverterData / 3PInverterData / MinMaxInverterData
-        """
-
+    def inverter_realtime_data(self, scope="System", device_id=None, data_collection=''):
         request_url = "/solar_api/v1/GetInverterRealtimeData.cgi"
-        body = self.DoRequest(request_url,{"Scope":Scope,"DeviceID":DeviceID,"DataCollection":DataCollection})
-        if body:
-            self.PrintFormatted(body["Data"])
-            return body["Data"]
-        else:
-            return False
+        data = {'Scope': scope}
+        if device_id and data_collection:
+            data['DeviceID'] = device_id
+            data['DataCollection'] = data_collection
+        body = self.request(request_url, data)
+        return body and body["Data"] or False
 
-    def GetSensorRealtimeData(self):
-        return "NOT IMPLEMENTED"
-
-    def GetStringRealtimeData(self,Scope="Device",DeviceId=0,DataCollection="NowStringControlData",TimePeriod="Day"):
+    def GetStringRealtimeData(self, scope="Device", device_id=0,\
+            data_collection="NowStringControlData", time_period="Day"):
         request_url = "/solar_api/v1/GetStringRealtimeData.cgi"
-        body = self.DoRequest(request_url,{"Scope":Scope,"DeviceId":DeviceId,"DataCollection":DataCollection,"TimePeriod":TimePeriod})
-        if body:
-            self.PrintFormatted(body["Data"])
-            return body["Data"]
-        else:
-            return False
+        body = self.request(request_url, {
+            "Scope": scope,
+            "DeviceId": device_id,
+            "DataCollection": data_collection,
+            "TimePeriod": time_period
+        })
+        return body and body["Data"] or False
 
-
-    def GetLoggerInfo(self):
+    def logger_info(self):
         request_url = "/solar_api/v1/GetLoggerInfo.cgi"
-        body = self.DoRequest(request_url,{})
-        if body:
-            self.PrintFormatted(body["LoggerInfo"])
-            return body["LoggerInfo"]
-        else:
-            return False
+        body = self.request(request_url,{})
+        return body and body["LoggerInfo"] or False
 
+    def inverter_info(self):
+        raise NotImplementedError()
 
+    def active_device_info(self):
+        raise NotImplementedError()
 
-    def GetLoggerLEDInfo(self):
-        return "NOT IMPLEMENTED"
+    def meter_realtime_data(self):
+        raise NotImplementedError()
 
-    def GetInverterInfo(self):
-        return "NOT IMPLEMENTEND"
-
-    def GetActiveDeviceInfo(self):
-        return "NOT IMPLEMENTED"
-
-    def GetMeterRealtimeData(self):
-        return "NOT IMPLEMENTED"
-
-    def GetArchiveData(self,Scope="System",SeriesType="Detail",HumanReadable="False",StartDate=False,EndDate=False,Channel=False,DeviceClass="Inverter",DeviceId=0):
+    def archive_data(self, scope="System", series_type="Detail", human_readable="False", start_date=False, end_date=False, channel=False, device_class="Inverter", device_id=0):
         request_url = "/solar_api/v1/GetArchiveData.cgi"
-        if not EndDate:
-            now = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            EndDate = now # now
-        if not StartDate:
-            twoweeksago = ( datetime.datetime.now()  + datetime.timedelta(days=-14)).strftime('%Y-%m-%d %H:%M:%S')
-            StartDate = twoweeksago # EndTime - 16d
+        end_date = end_date or datetime.datetime.now().strftime('%Y-%m-%d')# %H:%M:%S')
+        if not start_date:
+            start_date = (datetime.datetime.now() + datetime.timedelta(days=-1)).strftime('%Y-%m-%d')# %H:%M:%S')
+        if scope == "System":
+            device_class = "" 
+            device_id = ""
+        # see API chapter 4.3
+        body = self.request(request_url, {
+           "Scope": scope,
+           "SeriesType": series_type,
+           "HumanReadable": human_readable,
+           "StartDate": start_date,
+           "EndDate":  end_date,
+           "Channel": channel,
+           "DeviceClass": device_class,
+           "DeviceId": device_id
+        })
+        print body['Data']
+        return body['Data']
 
-        if Scope=="System":
-            DeviceClass="" 
-            DeviceId=""
-
-        body = self.DoRequest(request_url,{"Scope":Scope,"SeriesType":SeriesType,"HumanReadable":HumanReadable,"StartDate":StartDate,"EndDate":EndDate,"Channel":Channel,"DeviceClass":DeviceClass,"DeviceId":DeviceId})
-        print body["Data"]
-        return body
-
-    def GetAllArchiveData(self):
-        archive_fetchem = ["TimeSpanInSec",\
-        #"Digital_PowerManagementRelay_Out_1",\
-        "EnergyReal_WAC_Sum_Produced",\
-        #"InverterEvents","InverterErrors",\
-        "Current_DC_String_1","Current_DC_String_2",\
-        "Voltage_DC_String_1","Voltage_DC_String_2",\
-        "Temperature_Powerstage",\
-        "Voltage_AC_Phase_1","Voltage_AC_Phase_2","Voltage_AC_Phase_3",\
-        "Current_AC_Phase_1","Current_AC_Phase_2","Current_AC_Phase_3",\
-        "PowerReal_PAC_Sum"]
-
-        complete_archive_data = dict()
-
+    def all_archive_data(self):
+        archive_fetchem = [
+            'TimeSpanInSec', # sec
+            #'Digital_PowerManagementRelay_Out_1', # 1
+            'EnergyReal_WAC_Sum_Produced', # Wh
+            'InverterEvents', # struct
+            'InverterErrors', # struct
+            'Current_DC_String_1', # 1A
+            'Current_DC_String_2', # 1A
+            'Voltage_DC_String_1', # 1V
+            'Voltage_DC_String_2', # 1V
+            'Temperature_Powerstage', # deg C
+            'Voltage_AC_Phase_1', # 1V
+            'Voltage_AC_Phase_2', # 1V
+            'Voltage_AC_Phase_3', # 1V
+            'Current_AC_Phase_1', # 1A
+            'Current_AC_Phase_2', # 1A
+            'Current_AC_Phase_3', # 1A
+            'PowerReal_PAC_Sum', # 1W
+            'EnergyReal_WAC_Minus_Absolute', # 1Wh
+            'EnergyReal_WAC_Plus_Absolute', # 1Wh
+            'Meter_Location_Current', # 1
+            'Digital_PowerManagementRelay_Out_1', # 1
+        ]
+        d = dict()
         for item in archive_fetchem:
-            data = self.GetArchiveData("System","Detail","True",False,False,item,"Inverter",1)["Data"]["inverter/1"]["Data"]
+            print 'Fetchin', item
+            data = self.archive_data("System", "Detail", "True", False, False, item, "Inverter", 1)
+            if data:
+                data = data["inverter/1"]["Data"]
+            vals = data[data.keys()[0]]["Values"]
+            unit = data[data.keys()[0]]["Unit"]
+            d[item] = [vals, unit]
+        return d
 
-            vals = data[data.keys()[0]]["Values"] # is a dict
-            unit = data[data.keys()[0]]["Unit"] # is a string
-
-            complete_archive_data[item] = [vals,unit]
-
-        return complete_archive_data
-
-if __name__ == "__main__": # test
-    api = solarapi("192.168.3.110",True)
-
-    api.GetLoggerInfo()
-
-
-    api.GetInverterRealtimeData("System")
-    api.GetInverterRealtimeData("Device",1,"CumulationInverterData")
-    api.GetInverterRealtimeData("Device",1,"CommonInverterData")
-    api.GetInverterRealtimeData("Device",1,"3PInverterData")
-    api.GetInverterRealtimeData("Device",1,"MinMaxInverterData")
-
-    api.GetAllArchiveData()
-
-    #for i in range(0,199):
-    #    print i
-    #    api.GetStringRealtimeData("Device",i)
-
+if __name__ == '__main__':
+    if len(sys.argv) < 2:
+        print "usage: python solarapi.py IP_ADDRESS"
+        exit(1)
+    host = sys.argv[1]
+    api = SolarAPI(host)
+    print api.logger_info()
+    print api.api_info()
+    print api.inverter_realtime_data("System")
+    print api.all_archive_data()
