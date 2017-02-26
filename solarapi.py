@@ -4,12 +4,14 @@ import sys
 import json
 import requests
 import datetime
+
 class SolarAPI:
     "Fronius Solar API wrapper"
 
-    def __init__(self, host):
+    def __init__(self, host='localhost'):
         self.host = host
         self.protocol = 'http://'
+        self.version = '1.0'
 
     def request(self, url, params={}):
         request_url = self.protocol + self.host + url
@@ -65,7 +67,9 @@ class SolarAPI:
     def meter_realtime_data(self):
         raise NotImplementedError()
 
-    def archive_data(self, scope="System", series_type="Detail", human_readable="False", start_date=False, end_date=False, channel=False, device_class="Inverter", device_id=0):
+    def archive_data(self, scope="System", series_type="Detail",
+            human_readable="False", start_date=False, end_date=False,
+            channel=False, device_class="Inverter", device_id=0):
         request_url = "/solar_api/v1/GetArchiveData.cgi"
         end_date = end_date or datetime.datetime.now().strftime('%Y-%m-%d')# %H:%M:%S')
         if not start_date:
@@ -84,7 +88,6 @@ class SolarAPI:
            "DeviceClass": device_class,
            "DeviceId": device_id
         })
-        print body['Data']
         return body['Data']
 
     def all_archive_data(self):
@@ -113,7 +116,6 @@ class SolarAPI:
         ]
         d = dict()
         for item in archive_fetchem:
-            print 'Fetchin', item
             data = self.archive_data("System", "Detail", "True", False, False, item, "Inverter", 1)
             if data:
                 data = data["inverter/1"]["Data"]
