@@ -9,10 +9,20 @@
 <preferences/>
 <find_panel_settings/>
 <vnodes>
-<v t="254386i.20121121020451.1357" a="E"><vh>workbook.leo</vh>
+<v t="martin.20171015092119.1" a="E"><vh>code</vh>
+<v t="martin.20171015093734.1" a="E"><vh>@clean ./db_interface.py</vh>
+<v t="martin.20171015093752.1"><vh>docs</vh></v>
+<v t="martin.20171015093755.1"><vh>imports</vh></v>
+</v>
+<v t="martin.20171015090721.1" a="E"><vh>@clean ./logger_wrapper.py</vh>
+<v t="martin.20171015090946.1"><vh>docs</vh></v>
+<v t="martin.20171015090825.1"><vh>imports</vh></v>
+<v t="martin.20171015090909.1"><vh>functions</vh></v>
+<v t="martin.20171015090921.1"><vh>main</vh></v>
+</v>
 <v t="martin.20171015085508.1" a="E"><vh>@clean ./solarapi.py</vh>
 <v t="martin.20171015085508.2"><vh>Declarations</vh></v>
-<v t="martin.20171015085508.3" a="E"><vh>class SolarAPI</vh>
+<v t="martin.20171015085508.3"><vh>class SolarAPI</vh>
 <v t="martin.20171015085508.4"><vh>__init__</vh></v>
 <v t="martin.20171015085508.5"><vh>request</vh></v>
 <v t="martin.20171015085508.6"><vh>api_info</vh></v>
@@ -27,16 +37,15 @@
 </v>
 <v t="martin.20171015085625.1"><vh>main</vh></v>
 </v>
-<v t="martin.20171015090721.1" a="E"><vh>@clean ./logger_wrapper.py</vh>
-<v t="martin.20171015090946.1"><vh>docs</vh></v>
-<v t="martin.20171015090825.1"><vh>imports</vh></v>
-<v t="martin.20171015090909.1"><vh>functions</vh></v>
-<v t="martin.20171015090921.1"><vh>main</vh></v>
+<v t="martin.20171015092109.1" a="E"><vh>@clean /home/martin/git/pyfroniussolarapi/__init__.py</vh>
+<v t="martin.20171015092109.2"><vh>Declarations</vh></v>
 </v>
+</v>
+<v t="martin.20171015092239.1" a="E"><vh>docs</vh>
+<v t="martin.20171015092055.1" a="E"><vh>@auto-md /home/martin/git/pyfroniussolarapi/README.md</vh></v>
 </v>
 </vnodes>
 <tnodes>
-<t tx="254386i.20121121020451.1357"></t>
 <t tx="martin.20171015085508.1">#!/usr/bin/env python
 
 @others
@@ -137,6 +146,7 @@ import datetime
 
 </t>
 <t tx="martin.20171015085508.5">def request(self, url, params={}):
+    """generic request handler"""
     request_url = self.protocol + self.host + url
     try:
         data = requests.get(request_url, params)
@@ -225,5 +235,20 @@ import pyfroniussolar as pfs
 <t tx="martin.20171015090946.1"># wrapper for fronius, to collect data, and write to archive
 # call it using cronjob, with your preferred time interval
 </t>
+<t tx="martin.20171015092109.1">@others
+@language python
+@tabwidth -4
+</t>
+<t tx="martin.20171015092109.2">from solarapi import *
+</t>
+<t tx="martin.20171015092119.1"></t>
+<t tx="martin.20171015092239.1"></t>
+<t tx="martin.20171015093734.1">@all
+</t>
+<t tx="martin.20171015093752.1"># we use mongo db because
+# 1) its already installed and running!
+# 2) json docs from each call to get status fit nicely in mongo vs sQL
+</t>
+<t tx="martin.20171015093755.1"></t>
 </tnodes>
 </leo_file>

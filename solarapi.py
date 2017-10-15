@@ -14,6 +14,7 @@ class SolarAPI:
         self.version = '1.0'
 
     def request(self, url, params={}):
+        """generic request handler"""
         request_url = self.protocol + self.host + url
         try:
             data = requests.get(request_url, params)
