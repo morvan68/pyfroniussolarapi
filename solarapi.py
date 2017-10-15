@@ -18,14 +18,14 @@ class SolarAPI:
         try:
             data = requests.get(request_url, params)
             data = data.json()
-        except ValueError, e:
-            print "Error in JSON response:", e
-            print data
+        except ValueError as e:
+            print( "Error in JSON response: %s" % e )
+            print( data )
             return False
         errorcode = data["Head"]["Status"]["Code"]
         errortext = data["Head"]["Status"]["Reason"]
         if not "Body" in data or errorcode > 0:
-            print "%i - %s"%(errorcode,errortext)
+            print( "%i - %s" % (errorcode,errortext) )
             return False
         return data["Body"]
 
@@ -33,7 +33,9 @@ class SolarAPI:
         request_url = self.protocol + self.host + '/solar_api/GetAPIVersion.cgi'
         return requests.get(request_url).json()
 
-    def inverter_realtime_data(self, scope="System", device_id=None, data_collection=''):
+    def inverter_realtime_data(self, scope="System",
+                                device_id=None, data_collection=''):
+
         request_url = "/solar_api/v1/GetInverterRealtimeData.cgi"
         data = {'Scope': scope}
         if device_id and data_collection:
@@ -42,8 +44,9 @@ class SolarAPI:
         body = self.request(request_url, data)
         return body and body["Data"] or False
 
-    def GetStringRealtimeData(self, scope="Device", device_id=0,\
-            data_collection="NowStringControlData", time_period="Day"):
+    def GetStringRealtimeData(self, scope="Device", device_id=0,
+                                data_collection="NowStringControlData",
+                                time_period="Day"):
         request_url = "/solar_api/v1/GetStringRealtimeData.cgi"
         body = self.request(request_url, {
             "Scope": scope,
@@ -68,12 +71,17 @@ class SolarAPI:
         raise NotImplementedError()
 
     def archive_data(self, scope="System", series_type="Detail",
-            human_readable="False", start_date=False, end_date=False,
-            channel=False, device_class="Inverter", device_id=0):
+            human_readable="False",
+            start_date=False, end_date=False,
+            channel=False,
+            device_class="Inverter", device_id=0):
+                
         request_url = "/solar_api/v1/GetArchiveData.cgi"
-        end_date = end_date or datetime.datetime.now().strftime('%Y-%m-%d')# %H:%M:%S')
+        end_date = end_date or datetime.datetime.now().strftime('%Y-%m-%d')
+                    # %H:%M:%S')
         if not start_date:
-            start_date = (datetime.datetime.now() + datetime.timedelta(days=-1)).strftime('%Y-%m-%d')# %H:%M:%S')
+            start_date = (datetime.datetime.now() + 
+                datetime.timedelta(days=-1)).strftime('%Y-%m-%d')# %H:%M:%S')
         if scope == "System":
             device_class = "" 
             device_id = ""
@@ -126,11 +134,11 @@ class SolarAPI:
 
 if __name__ == '__main__':
     if len(sys.argv) < 2:
-        print "usage: python solarapi.py IP_ADDRESS"
+        print( "usage: python3 solarapi.py IP_ADDRESS" )
         exit(1)
     host = sys.argv[1]
     api = SolarAPI(host)
-    print api.logger_info()
-    print api.api_info()
-    print api.inverter_realtime_data("System")
-    print api.all_archive_data()
+    print( api.logger_info() )
+    print( api.api_info() )
+    print( api.inverter_realtime_data("System") )
+    #print( api.all_archive_data() )
