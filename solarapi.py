@@ -12,7 +12,7 @@ class SolarAPI:
         self.host = host
         self.protocol = 'http://'
         self.version = '1.0'
-
+        self.inverter_id = 1 #TODO we should dynamically get this using inverter info
     def request(self, url, params={}):
         """generic request handler"""
         request_url = self.protocol + self.host + url
@@ -31,46 +31,75 @@ class SolarAPI:
         return data["Body"]
 
     def api_info(self):
+        """get the api version/info:
+        {'APIVersion': 1, 'BaseURL': '/solar_api/v1/', 'CompatibilityRange': '1.5-4'}"""
         request_url = self.protocol + self.host + '/solar_api/GetAPIVersion.cgi'
         return requests.get(request_url).json()
+    def inverter_info(self):
+        request_url = "/solar_api/v1/GetInverterInfo.cgi"
+        body = self.request(request_url,{})
+        return body and body["Data"] or False
+
+    def logger_info(self):
+        """get the logger info"""
+        request_url = "/solar_api/v1/GetLoggerInfo.cgi"
+        body = self.request(request_url,{})
+        return body and body["LoggerInfo"] or False
+
+    def active_device_info(self):
+        """list of active devices on the system"""
+        request_url = "/solar_api/v1/GetActiveDeviceInfo.cgi?DeviceClass=System"
+        body = self.request(request_url,{})
+        return body and body["Data"] or False
+
+    def meter_realtime_data(self):
+        """gets info on the meter"""
+        
+        raise NotImplementedError()
 
     def inverter_realtime_data(self, scope="System",
                                 device_id=None, data_collection=''):
-
+        """get real time data, defaults return real time cumulativedata"""
         request_url = "/solar_api/v1/GetInverterRealtimeData.cgi"
         data = {'Scope': scope}
-        if device_id and data_collection:
+        if (device_id is not None) and (data_collection is not ''):
             data['DeviceID'] = device_id
             data['DataCollection'] = data_collection
         body = self.request(request_url, data)
         return body and body["Data"] or False
 
+    def inverter_common_data(self):
+        """get real time data from inverter"""
+        return self.inverter_realtime_data( scope='Device',
+                device_id=self.inverter_id, data_collection='CommonInverterData')
+
+    def inverter_3Pinverter_data(self):
+        """get 3 phase inverter data"""
+        return self.inverter_realtime_data( scope='Device',
+                device_id=self.inverter_id, data_collection='3PInverterData')
+
     def GetStringRealtimeData(self, scope="Device", device_id=0,
                                 data_collection="NowStringControlData",
                                 time_period="Day"):
+        """get data from each string of the panels"""
         request_url = "/solar_api/v1/GetStringRealtimeData.cgi"
-        body = self.request(request_url, {
-            "Scope": scope,
-            "DeviceId": device_id,
-            "DataCollection": data_collection,
-            "TimePeriod": time_period
-        })
+        body = self.request( request_url, {
+                            "Scope": scope,
+                            "DeviceId": device_id,
+                            "DataCollection": data_collection,
+                            "TimePeriod": time_period
+                            })
         return body and body["Data"] or False
-
-    def logger_info(self):
-        request_url = "/solar_api/v1/GetLoggerInfo.cgi"
-        body = self.request(request_url,{})
-        return body and body["LoggerInfo"] or False
-
-    def inverter_info(self):
-        raise NotImplementedError()
-
-    def active_device_info(self):
-        raise NotImplementedError()
-
-    def meter_realtime_data(self):
-        raise NotImplementedError()
-
+    def GetSensorRealtimeData(self, scope="Device", device_id=0,
+                                data_collection="NowSensorData"):
+        """get data from sensors"""
+        request_url = "/solar_api/v1/GetSensorRealtimeData.cgi"
+        body = self.request( request_url, {
+                            "Scope": scope,
+                            "DeviceId": device_id,
+                            "DataCollection": data_collection,
+                            })
+        return body and body["Data"] or False
     def archive_data(self, scope="System", series_type="Detail",
             human_readable="False",
             start_date=False, end_date=False,
@@ -141,5 +170,13 @@ if __name__ == '__main__':
     api = SolarAPI(host)
     print( api.logger_info() )
     print( api.api_info() )
+    print( api.inverter_info() )
+    print( 'cumulative data')
     print( api.inverter_realtime_data("System") )
-    #print( api.all_archive_data() )
+    print( 'active device info')
+    print( api.active_device_info() )
+    print( 'inv common data')
+    print( api.inverter_common_data() )
+    print( 'inv 3P data')
+    print( api.inverter_3Pinverter_data() )
+#    print( api.archive_data() )

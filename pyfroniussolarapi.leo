@@ -10,39 +10,43 @@
 <find_panel_settings/>
 <vnodes>
 <v t="martin.20171015092119.1" a="E"><vh>code</vh>
-<v t="martin.20171015093734.1" a="E"><vh>@clean ./db_interface.py</vh>
-<v t="martin.20171015093752.1"><vh>docs</vh></v>
-<v t="martin.20171015093755.1"><vh>imports</vh></v>
-</v>
-<v t="martin.20171015090721.1" a="E"><vh>@clean ./logger_wrapper.py</vh>
+<v t="martin.20171015090721.1"><vh>@clean ./logger_wrapper.py</vh>
 <v t="martin.20171015090946.1"><vh>docs</vh></v>
 <v t="martin.20171015090825.1"><vh>imports</vh></v>
 <v t="martin.20171015090909.1"><vh>functions</vh></v>
 <v t="martin.20171015090921.1"><vh>main</vh></v>
 </v>
+<v t="martin.20171015093734.1" a="E"><vh>@clean ./db_interface.py</vh>
+<v t="martin.20171015093752.1"><vh>docs</vh></v>
+<v t="martin.20171015093755.1"><vh>imports</vh></v>
+<v t="martin.20180101080101.1"><vh>write</vh></v>
+</v>
 <v t="martin.20171015085508.1" a="E"><vh>@clean ./solarapi.py</vh>
 <v t="martin.20171015085508.2"><vh>Declarations</vh></v>
-<v t="martin.20171015085508.3"><vh>class SolarAPI</vh>
+<v t="martin.20171015085508.3" a="E"><vh>class SolarAPI</vh>
 <v t="martin.20171015085508.4"><vh>__init__</vh></v>
 <v t="martin.20171015085508.5"><vh>request</vh></v>
 <v t="martin.20171015085508.6"><vh>api_info</vh></v>
-<v t="martin.20171015085508.7"><vh>inverter_realtime_data</vh></v>
-<v t="martin.20171015085508.8"><vh>GetStringRealtimeData</vh></v>
-<v t="martin.20171015085508.9"><vh>logger_info</vh></v>
 <v t="martin.20171015085508.10"><vh>inverter_info</vh></v>
+<v t="martin.20171015085508.9"><vh>logger_info</vh></v>
 <v t="martin.20171015085508.11"><vh>active_device_info</vh></v>
-<v t="martin.20171015085508.12"><vh>meter_realtime_data</vh></v>
+<v t="martin.20171015085508.12" a="M"><vh>meter_realtime_data</vh></v>
+<v t="martin.20171015085508.7"><vh>inverter_cumulative_data</vh></v>
+<v t="martin.20180102050736.1"><vh>inverter common data</vh></v>
+<v t="martin.20171015085508.8"><vh>GetStringRealtimeData</vh></v>
+<v t="martin.20180102052211.1"><vh>GetSensorRealtimeData</vh></v>
 <v t="martin.20171015085508.13"><vh>archive_data</vh></v>
 <v t="martin.20171015085508.14"><vh>all_archive_data</vh></v>
 </v>
 <v t="martin.20171015085625.1"><vh>main</vh></v>
 </v>
-<v t="martin.20171015092109.1" a="E"><vh>@clean /home/martin/git/pyfroniussolarapi/__init__.py</vh>
+<v t="martin.20171015092109.1"><vh>@clean ./__init__.py</vh>
 <v t="martin.20171015092109.2"><vh>Declarations</vh></v>
 </v>
 </v>
 <v t="martin.20171015092239.1" a="E"><vh>docs</vh>
-<v t="martin.20171015092055.1" a="E"><vh>@auto-md /home/martin/git/pyfroniussolarapi/README.md</vh></v>
+<v t="martin.20180101163846.1"><vh>fronius</vh></v>
+<v t="martin.20171015092055.1"><vh>@auto-md ./README.md</vh></v>
 </v>
 </vnodes>
 <tnodes>
@@ -53,14 +57,21 @@
 @tabwidth -4
 </t>
 <t tx="martin.20171015085508.10">def inverter_info(self):
-    raise NotImplementedError()
+    request_url = "/solar_api/v1/GetInverterInfo.cgi"
+    body = self.request(request_url,{})
+    return body and body["Data"] or False
 
 </t>
 <t tx="martin.20171015085508.11">def active_device_info(self):
-    raise NotImplementedError()
+    """list of active devices on the system"""
+    request_url = "/solar_api/v1/GetActiveDeviceInfo.cgi?DeviceClass=System"
+    body = self.request(request_url,{})
+    return body and body["Data"] or False
 
 </t>
 <t tx="martin.20171015085508.12">def meter_realtime_data(self):
+    """gets info on the meter"""
+    
     raise NotImplementedError()
 
 </t>
@@ -143,7 +154,7 @@ import datetime
     self.host = host
     self.protocol = 'http://'
     self.version = '1.0'
-
+    self.inverter_id = 1 #TODO we should dynamically get this using inverter info
 </t>
 <t tx="martin.20171015085508.5">def request(self, url, params={}):
     """generic request handler"""
@@ -164,16 +175,17 @@ import datetime
 
 </t>
 <t tx="martin.20171015085508.6">def api_info(self):
+    """get the api version/info:
+    {'APIVersion': 1, 'BaseURL': '/solar_api/v1/', 'CompatibilityRange': '1.5-4'}"""
     request_url = self.protocol + self.host + '/solar_api/GetAPIVersion.cgi'
     return requests.get(request_url).json()
-
 </t>
 <t tx="martin.20171015085508.7">def inverter_realtime_data(self, scope="System",
                             device_id=None, data_collection=''):
-
+    """get real time data, defaults return real time cumulativedata"""
     request_url = "/solar_api/v1/GetInverterRealtimeData.cgi"
     data = {'Scope': scope}
-    if device_id and data_collection:
+    if (device_id is not None) and (data_collection is not ''):
         data['DeviceID'] = device_id
         data['DataCollection'] = data_collection
     body = self.request(request_url, data)
@@ -183,17 +195,18 @@ import datetime
 <t tx="martin.20171015085508.8">def GetStringRealtimeData(self, scope="Device", device_id=0,
                             data_collection="NowStringControlData",
                             time_period="Day"):
+    """get data from each string of the panels"""
     request_url = "/solar_api/v1/GetStringRealtimeData.cgi"
-    body = self.request(request_url, {
-        "Scope": scope,
-        "DeviceId": device_id,
-        "DataCollection": data_collection,
-        "TimePeriod": time_period
-    })
+    body = self.request( request_url, {
+                        "Scope": scope,
+                        "DeviceId": device_id,
+                        "DataCollection": data_collection,
+                        "TimePeriod": time_period
+                        })
     return body and body["Data"] or False
-
 </t>
 <t tx="martin.20171015085508.9">def logger_info(self):
+    """get the logger info"""
     request_url = "/solar_api/v1/GetLoggerInfo.cgi"
     body = self.request(request_url,{})
     return body and body["LoggerInfo"] or False
@@ -207,31 +220,51 @@ import datetime
     api = SolarAPI(host)
     print( api.logger_info() )
     print( api.api_info() )
+    print( api.inverter_info() )
+    print( 'cumulative data')
     print( api.inverter_realtime_data("System") )
-    #print( api.all_archive_data() )
+    print( 'active device info')
+    print( api.active_device_info() )
+    print( 'inv common data')
+    print( api.inverter_common_data() )
+    print( 'inv 3P data')
+    print( api.inverter_3Pinverter_data() )
+#    print( api.archive_data() )
 </t>
-<t tx="martin.20171015090721.1">@all</t>
+<t tx="martin.20171015090721.1">@all
+</t>
 <t tx="martin.20171015090825.1">import os
+import datetime
 import sys
 import json
 
-import pyfroniussolar as pfs
+import solarapi as sol
+import db_interface as db
 </t>
 <t tx="martin.20171015090909.1"></t>
 <t tx="martin.20171015090921.1">if __name__ == '__main__':
-    ip = sys.argv[1]
-    data_store = ''
+    if len(sys.argv) &gt; 1:
+        ip = sys.argv[1]
+    else:
+        ip = '192.168.1.60'
+    data_store = '/home/martin/solar_data'
     
+    ap = sol.SolarAPI( ip)
     #check inverter is powered
+    inverter_on = True
     
-    if True:
-        ap = pfs.SolarAPI( ip)
-    
+    if inverter_on:
         #get relevant data
-    
-    #store results to file
-    
-    </t>
+        #print( api.logger_info() )
+        #print( api.api_info() )
+        print( ap.inverter_realtime_data("System") )
+
+        # #store results to file
+        # fname = 'data_' + datetime.datetime.now().isoformat() + '.json'
+        # fname = os.path.join( data_store, fname)
+        # db.write( fname, data)
+
+</t>
 <t tx="martin.20171015090946.1"># wrapper for fronius, to collect data, and write to archive
 # call it using cronjob, with your preferred time interval
 </t>
@@ -246,9 +279,52 @@ import pyfroniussolar as pfs
 <t tx="martin.20171015093734.1">@all
 </t>
 <t tx="martin.20171015093752.1"># we use mongo db because
-# 1) its already installed and running!
-# 2) json docs from each call to get status fit nicely in mongo vs sQL
+# 1) its already installed and running on my system!
+# 2) json docs from each call to get status fit nicely in mongo vs SQL
 </t>
-<t tx="martin.20171015093755.1"></t>
+<t tx="martin.20171015093755.1">import json
+import mongodb
+</t>
+<t tx="martin.20180101080101.1">def write( fname, data):
+    if fname.endswith('json'):
+        write_to_file( fname, data)
+    else:
+        ...
+
+def write_to_file( fname, data):
+    """simple writer, just to json file, not to db"""
+    with open( fname, 'wt') as f:
+        json.dump(data, f, indent=4, sort_keys=True)</t>
+<t tx="martin.20180101163846.1">uid:admin
+
+old:
+Greenlogic_1
+
+new:
+F19.
+
+mac d4:ca:6e:3c:d0:f1
+assigned to 192.168.1.60 by router
+</t>
+<t tx="martin.20180102050736.1">def inverter_common_data(self):
+    """get real time data from inverter"""
+    return self.inverter_realtime_data( scope='Device',
+            device_id=self.inverter_id, data_collection='CommonInverterData')
+
+def inverter_3Pinverter_data(self):
+    """get 3 phase inverter data"""
+    return self.inverter_realtime_data( scope='Device',
+            device_id=self.inverter_id, data_collection='3PInverterData')</t>
+<t tx="martin.20180102052211.1">def GetSensorRealtimeData(self, scope="Device", device_id=0,
+                            data_collection="NowSensorData"):
+    """get data from sensors"""
+    request_url = "/solar_api/v1/GetSensorRealtimeData.cgi"
+    body = self.request( request_url, {
+                        "Scope": scope,
+                        "DeviceId": device_id,
+                        "DataCollection": data_collection,
+                        })
+    return body and body["Data"] or False
+</t>
 </tnodes>
 </leo_file>
