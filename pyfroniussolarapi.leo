@@ -45,8 +45,7 @@
 </v>
 </v>
 <v t="martin.20171015092239.1" a="E"><vh>docs</vh>
-<v t="martin.20180101163846.1"><vh>fronius</vh></v>
-<v t="martin.20171015092055.1"><vh>@auto-md ./README.md</vh></v>
+<v t="martin.20171015092055.1" a="E"><vh>@auto-md ./README.md</vh></v>
 </v>
 </vnodes>
 <tnodes>
@@ -238,8 +237,7 @@ import datetime
 </t>
 <t tx="martin.20171015090721.1">@all
 </t>
-<t tx="martin.20171015090825.1">import os
-import datetime
+<t tx="martin.20171015090825.1">import datetime
 import sys
 
 import solarapi as sol
@@ -272,7 +270,8 @@ import db_interface as db
 </t>
 <t tx="martin.20171015090946.1"># wrapper for fronius, to collect data, and write to archive
 # call it using crontab, with your preferred time interval; i use:
-# </t>
+# import os
+</t>
 <t tx="martin.20171015092109.1">@others
 @language python
 @tabwidth -4
@@ -313,17 +312,6 @@ def write_to_db( fname, data):
     posts = db.posts
     post_id = posts.insert_one(data).inserted_id
     return post_id</t>
-<t tx="martin.20180101163846.1">uid:admin
-
-old:
-Greenlogic_1
-
-new:
-F19.
-
-mac d4:ca:6e:3c:d0:f1
-assigned to 192.168.1.60 by router
-</t>
 <t tx="martin.20180102050736.1">def inverter_common_data(self):
     """get real time data from inverter"""
     return self.inverter_realtime_data( scope='Device',
