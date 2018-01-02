@@ -4,7 +4,7 @@
 #    fits nicely in mongo vs SQL
 import json
 
-from pymongo import MongoClient
+#from pymongo import MongoClient
 def write( fname, data):
     """write results to file: fname ends with json will write a single 
     data file, else fname refers to mongodb location"""

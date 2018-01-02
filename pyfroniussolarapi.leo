@@ -256,7 +256,7 @@ import db_interface as db
         ip = sys.argv[1]
     else: #convenience for my system
         ip = '192.168.1.60'
-    data_store = '/home/martin/solar_data'
+    data_store = r'/home/martin/solar_data'
     ap = sol.SolarAPI( ip)
     inverter_on = ap.api_info()
     if inverter_on is not False:
@@ -268,9 +268,8 @@ import db_interface as db
         data['cumulative_data'] = ap.inverter_realtime_data()
         data['common_data'] = ap.inverter_common_data()
         data['3P_data'] = ap.inverter_3Pinverter_data()
-
         # store results to file
-        fname = 'data_' + datetime.datetime.now().isoformat() + '.json'
+        fname = r'data_' + datetime.datetime.now().isoformat().replace(':','-') + r'.json'
         fname = os.path.join( data_store, fname)
         db.write( fname, data)
 
@@ -296,7 +295,7 @@ import db_interface as db
 </t>
 <t tx="martin.20171015093755.1">import json
 
-from pymongo import MongoClient
+#from pymongo import MongoClient
 </t>
 <t tx="martin.20180101080101.1">def write( fname, data):
     """write results to file: fname ends with json will write a single 

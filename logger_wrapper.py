@@ -12,7 +12,7 @@ if __name__ == '__main__':
         ip = sys.argv[1]
     else: #convenience for my system
         ip = '192.168.1.60'
-    data_store = '/home/martin/solar_data'
+    data_store = r'/home/martin/solar_data'
     ap = sol.SolarAPI( ip)
     inverter_on = ap.api_info()
     if inverter_on is not False:
@@ -24,9 +24,8 @@ if __name__ == '__main__':
         data['cumulative_data'] = ap.inverter_realtime_data()
         data['common_data'] = ap.inverter_common_data()
         data['3P_data'] = ap.inverter_3Pinverter_data()
-
         # store results to file
-        fname = 'data_' + datetime.datetime.now().isoformat() + '.json'
+        fname = r'data_' + datetime.datetime.now().isoformat().replace(':','-') + r'.json'
         fname = os.path.join( data_store, fname)
         db.write( fname, data)
 
