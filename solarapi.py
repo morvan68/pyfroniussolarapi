@@ -7,12 +7,13 @@ import datetime
 
 class SolarAPI:
     "Fronius Solar API wrapper"
-
     def __init__(self, host='localhost'):
         self.host = host
         self.protocol = 'http://'
         self.version = '1.0'
         self.inverter_id = 1 #TODO we should dynamically get this using inverter info
+        if self.inverter_id == False:
+            return False
     def request(self, url, params={}):
         """generic request handler"""
         request_url = self.protocol + self.host + url
@@ -41,6 +42,7 @@ class SolarAPI:
             return False
         return body
     def inverter_info(self):
+        """get the inverter information"""
         request_url = "/solar_api/v1/GetInverterInfo.cgi"
         body = self.request(request_url,{})
         return body and body["Data"] or False
@@ -57,17 +59,21 @@ class SolarAPI:
         body = self.request(request_url,{})
         return body and body["Data"] or False
 
-    def meter_realtime_data(self):
+    def meter_realtime_data(self, scope = 'System', device_id=None):
         """gets info on the meter"""
-        
-        raise NotImplementedError()
+        request_url = "/solar_api/v1/GetMeterRealTimeData.cgi"
+        data = {'Scope': scope}
+        if device_id is not None:
+            data['DeviceID'] = device_id
+        body = self.request(request_url, data)
+        return body and body["Data"] or False
 
     def inverter_realtime_data(self, scope="System",
                                 device_id=None, data_collection=''):
         """get real time data, defaults return real time cumulativedata"""
         request_url = "/solar_api/v1/GetInverterRealtimeData.cgi"
         data = {'Scope': scope}
-        if (device_id is not None) and (data_collection is not ''):
+        if (device_id is not None) and (data_collection != ''):
             data['DeviceID'] = device_id
             data['DataCollection'] = data_collection
         body = self.request(request_url, data)
@@ -185,3 +191,5 @@ if __name__ == '__main__':
     print( 'inv 3P data')
     print( api.inverter_3Pinverter_data() )
 #    print( api.archive_data() ) #not available on my system
+#    print( api.meter_realtime_data() )
+#    print( api.GetStringRealtimeData() )

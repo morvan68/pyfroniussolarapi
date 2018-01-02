@@ -13,7 +13,6 @@
 <v t="martin.20171015090721.1" a="E"><vh>@clean ./logger_wrapper.py</vh>
 <v t="martin.20171015090946.1"><vh>docs</vh></v>
 <v t="martin.20171015090825.1"><vh>imports</vh></v>
-<v t="martin.20171015090909.1"><vh>functions</vh></v>
 <v t="martin.20171015090921.1"><vh>main</vh></v>
 </v>
 <v t="martin.20171015093734.1" a="E"><vh>@clean ./db_interface.py</vh>
@@ -30,7 +29,7 @@
 <v t="martin.20171015085508.10"><vh>inverter_info</vh></v>
 <v t="martin.20171015085508.9"><vh>logger_info</vh></v>
 <v t="martin.20171015085508.11"><vh>active_device_info</vh></v>
-<v t="martin.20171015085508.12" a="M"><vh>meter_realtime_data</vh></v>
+<v t="martin.20171015085508.12"><vh>meter_realtime_data</vh></v>
 <v t="martin.20171015085508.7"><vh>inverter_cumulative_data</vh></v>
 <v t="martin.20180102050736.1"><vh>inverter common data</vh></v>
 <v t="martin.20171015085508.8"><vh>GetStringRealtimeData</vh></v>
@@ -40,11 +39,11 @@
 </v>
 <v t="martin.20171015085625.1"><vh>main</vh></v>
 </v>
-<v t="martin.20171015092109.1"><vh>@clean ./__init__.py</vh>
+<v t="martin.20171015092109.1" a="E"><vh>@clean ./__init__.py</vh>
 <v t="martin.20171015092109.2"><vh>Declarations</vh></v>
 </v>
 </v>
-<v t="martin.20171015092239.1" a="E"><vh>docs</vh>
+<v t="martin.20171015092239.1"><vh>docs</vh>
 <v t="martin.20171015092055.1" a="E"><vh>@auto-md ./README.md</vh></v>
 </v>
 </vnodes>
@@ -56,6 +55,7 @@
 @tabwidth -4
 </t>
 <t tx="martin.20171015085508.10">def inverter_info(self):
+    """get the inverter information"""
     request_url = "/solar_api/v1/GetInverterInfo.cgi"
     body = self.request(request_url,{})
     return body and body["Data"] or False
@@ -68,10 +68,14 @@
     return body and body["Data"] or False
 
 </t>
-<t tx="martin.20171015085508.12">def meter_realtime_data(self):
+<t tx="martin.20171015085508.12">def meter_realtime_data(self, scope = 'System', device_id=None):
     """gets info on the meter"""
-    
-    raise NotImplementedError()
+    request_url = "/solar_api/v1/GetMeterRealTimeData.cgi"
+    data = {'Scope': scope}
+    if device_id is not None:
+        data['DeviceID'] = device_id
+    body = self.request(request_url, data)
+    return body and body["Data"] or False
 
 </t>
 <t tx="martin.20171015085508.13">def archive_data(self, scope="System", series_type="Detail",
@@ -146,7 +150,6 @@ import datetime
 </t>
 <t tx="martin.20171015085508.3">class SolarAPI:
     "Fronius Solar API wrapper"
-
     @others
 </t>
 <t tx="martin.20171015085508.4">def __init__(self, host='localhost'):
@@ -154,6 +157,8 @@ import datetime
     self.protocol = 'http://'
     self.version = '1.0'
     self.inverter_id = 1 #TODO we should dynamically get this using inverter info
+    if self.inverter_id == False:
+        return False
 </t>
 <t tx="martin.20171015085508.5">def request(self, url, params={}):
     """generic request handler"""
@@ -189,7 +194,7 @@ import datetime
     """get real time data, defaults return real time cumulativedata"""
     request_url = "/solar_api/v1/GetInverterRealtimeData.cgi"
     data = {'Scope': scope}
-    if (device_id is not None) and (data_collection is not ''):
+    if (device_id is not None) and (data_collection != ''):
         data['DeviceID'] = device_id
         data['DataCollection'] = data_collection
     body = self.request(request_url, data)
@@ -234,16 +239,18 @@ import datetime
     print( 'inv 3P data')
     print( api.inverter_3Pinverter_data() )
 #    print( api.archive_data() ) #not available on my system
+#    print( api.meter_realtime_data() )
+#    print( api.GetStringRealtimeData() )
 </t>
 <t tx="martin.20171015090721.1">@all
 </t>
 <t tx="martin.20171015090825.1">import datetime
 import sys
+import os
 
 import solarapi as sol
 import db_interface as db
 </t>
-<t tx="martin.20171015090909.1"></t>
 <t tx="martin.20171015090921.1">if __name__ == '__main__':
     if len(sys.argv) &gt; 1:
         ip = sys.argv[1]
@@ -270,7 +277,7 @@ import db_interface as db
 </t>
 <t tx="martin.20171015090946.1"># wrapper for fronius, to collect data, and write to archive
 # call it using crontab, with your preferred time interval; i use:
-# import os
+# */10 6-18 * * * python3 /home/martin/git/fronius/logger_wrapper.py 192.168.1.60
 </t>
 <t tx="martin.20171015092109.1">@others
 @language python
@@ -288,7 +295,6 @@ import db_interface as db
 #    fits nicely in mongo vs SQL
 </t>
 <t tx="martin.20171015093755.1">import json
-#import pymongo
 
 from pymongo import MongoClient
 </t>

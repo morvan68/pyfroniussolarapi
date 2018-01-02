@@ -1,8 +1,9 @@
 # wrapper for fronius, to collect data, and write to archive
 # call it using crontab, with your preferred time interval; i use:
-# import os
+# */10 6-18 * * * python3 /home/martin/git/fronius/logger_wrapper.py 192.168.1.60
 import datetime
 import sys
+import os
 
 import solarapi as sol
 import db_interface as db

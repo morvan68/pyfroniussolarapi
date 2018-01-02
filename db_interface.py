@@ -3,7 +3,6 @@
 # 2) json dict from each call to inverter every X minures to get status
 #    fits nicely in mongo vs SQL
 import json
-#import pymongo
 
 from pymongo import MongoClient
 def write( fname, data):
