@@ -32,9 +32,14 @@ class SolarAPI:
 
     def api_info(self):
         """get the api version/info:
-        {'APIVersion': 1, 'BaseURL': '/solar_api/v1/', 'CompatibilityRange': '1.5-4'}"""
+        {'APIVersion': 1, 'BaseURL': '/solar_api/v1/', 'CompatibilityRange': '1.5-4'}
+        will return false if error or system offline"""
         request_url = self.protocol + self.host + '/solar_api/GetAPIVersion.cgi'
-        return requests.get(request_url).json()
+        try:
+            body = requests.get(request_url).json()
+        except ValueError as e:
+            return False
+        return body
     def inverter_info(self):
         request_url = "/solar_api/v1/GetInverterInfo.cgi"
         body = self.request(request_url,{})
@@ -179,4 +184,4 @@ if __name__ == '__main__':
     print( api.inverter_common_data() )
     print( 'inv 3P data')
     print( api.inverter_3Pinverter_data() )
-#    print( api.archive_data() )
+#    print( api.archive_data() ) #not available on my system

@@ -10,7 +10,7 @@
 <find_panel_settings/>
 <vnodes>
 <v t="martin.20171015092119.1" a="E"><vh>code</vh>
-<v t="martin.20171015090721.1"><vh>@clean ./logger_wrapper.py</vh>
+<v t="martin.20171015090721.1" a="E"><vh>@clean ./logger_wrapper.py</vh>
 <v t="martin.20171015090946.1"><vh>docs</vh></v>
 <v t="martin.20171015090825.1"><vh>imports</vh></v>
 <v t="martin.20171015090909.1"><vh>functions</vh></v>
@@ -176,9 +176,14 @@ import datetime
 </t>
 <t tx="martin.20171015085508.6">def api_info(self):
     """get the api version/info:
-    {'APIVersion': 1, 'BaseURL': '/solar_api/v1/', 'CompatibilityRange': '1.5-4'}"""
+    {'APIVersion': 1, 'BaseURL': '/solar_api/v1/', 'CompatibilityRange': '1.5-4'}
+    will return false if error or system offline"""
     request_url = self.protocol + self.host + '/solar_api/GetAPIVersion.cgi'
-    return requests.get(request_url).json()
+    try:
+        body = requests.get(request_url).json()
+    except ValueError as e:
+        return False
+    return body
 </t>
 <t tx="martin.20171015085508.7">def inverter_realtime_data(self, scope="System",
                             device_id=None, data_collection=''):
@@ -229,14 +234,13 @@ import datetime
     print( api.inverter_common_data() )
     print( 'inv 3P data')
     print( api.inverter_3Pinverter_data() )
-#    print( api.archive_data() )
+#    print( api.archive_data() ) #not available on my system
 </t>
 <t tx="martin.20171015090721.1">@all
 </t>
 <t tx="martin.20171015090825.1">import os
 import datetime
 import sys
-import json
 
 import solarapi as sol
 import db_interface as db
@@ -245,29 +249,30 @@ import db_interface as db
 <t tx="martin.20171015090921.1">if __name__ == '__main__':
     if len(sys.argv) &gt; 1:
         ip = sys.argv[1]
-    else:
+    else: #convenience for my system
         ip = '192.168.1.60'
     data_store = '/home/martin/solar_data'
-    
     ap = sol.SolarAPI( ip)
-    #check inverter is powered
-    inverter_on = True
-    
-    if inverter_on:
+    inverter_on = ap.api_info()
+    if inverter_on is not False:
+        data = {}
         #get relevant data
-        #print( api.logger_info() )
-        #print( api.api_info() )
-        print( ap.inverter_realtime_data("System") )
+        #data['logger_info'] = ap.logger_info()
+        data['inverter_info'] = ap.inverter_info()
+        #data['device_info'] = ap.active_device_info()
+        data['cumulative_data'] = ap.inverter_realtime_data()
+        data['common_data'] = ap.inverter_common_data()
+        data['3P_data'] = ap.inverter_3Pinverter_data()
 
-        # #store results to file
-        # fname = 'data_' + datetime.datetime.now().isoformat() + '.json'
-        # fname = os.path.join( data_store, fname)
-        # db.write( fname, data)
+        # store results to file
+        fname = 'data_' + datetime.datetime.now().isoformat() + '.json'
+        fname = os.path.join( data_store, fname)
+        db.write( fname, data)
 
 </t>
 <t tx="martin.20171015090946.1"># wrapper for fronius, to collect data, and write to archive
-# call it using cronjob, with your preferred time interval
-</t>
+# call it using crontab, with your preferred time interval; i use:
+# </t>
 <t tx="martin.20171015092109.1">@others
 @language python
 @tabwidth -4
@@ -278,23 +283,36 @@ import db_interface as db
 <t tx="martin.20171015092239.1"></t>
 <t tx="martin.20171015093734.1">@all
 </t>
-<t tx="martin.20171015093752.1"># we use mongo db because
+<t tx="martin.20171015093752.1"># we use mongo db because:
 # 1) its already installed and running on my system!
-# 2) json docs from each call to get status fit nicely in mongo vs SQL
+# 2) json dict from each call to inverter every X minures to get status
+#    fits nicely in mongo vs SQL
 </t>
 <t tx="martin.20171015093755.1">import json
-import mongodb
+#import pymongo
+
+from pymongo import MongoClient
 </t>
 <t tx="martin.20180101080101.1">def write( fname, data):
+    """write results to file: fname ends with json will write a single 
+    data file, else fname refers to mongodb location"""
     if fname.endswith('json'):
         write_to_file( fname, data)
-    else:
-        ...
+    else: #assume mongodb
+        write_to_db( fname, data)
 
 def write_to_file( fname, data):
     """simple writer, just to json file, not to db"""
     with open( fname, 'wt') as f:
-        json.dump(data, f, indent=4, sort_keys=True)</t>
+        json.dump( data, f, indent=4, sort_keys=True)
+
+def write_to_db( fname, data):
+    client = MongoClient()
+    db = client.test_database
+#    db = client.solar_database
+    posts = db.posts
+    post_id = posts.insert_one(data).inserted_id
+    return post_id</t>
 <t tx="martin.20180101163846.1">uid:admin
 
 old:
@@ -314,7 +332,9 @@ assigned to 192.168.1.60 by router
 def inverter_3Pinverter_data(self):
     """get 3 phase inverter data"""
     return self.inverter_realtime_data( scope='Device',
-            device_id=self.inverter_id, data_collection='3PInverterData')</t>
+            device_id=self.inverter_id, data_collection='3PInverterData')
+
+</t>
 <t tx="martin.20180102052211.1">def GetSensorRealtimeData(self, scope="Device", device_id=0,
                             data_collection="NowSensorData"):
     """get data from sensors"""
